@@ -8,9 +8,11 @@ const InputForm = () => {
   const [responseData, setResponseData] = useState(null);
   const [error, setError] = useState('');
   const [selectedOptions, setSelectedOptions] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
       const jsonInput = JSON.parse(input);
 
@@ -18,13 +20,19 @@ const InputForm = () => {
         throw new Error("Invalid JSON: 'data' key missing");
       }
 
-      setError('');
+      setError(''); // Clear any previous errors
 
       const response = await axios.post(import.meta.env.VITE_API_URL, jsonInput);
       setResponseData(response.data);
     } catch (err) {
-      setError('Invalid JSON input');
+      if (err.message.includes('Unexpected token')) {
+        setError('Invalid JSON format');
+      } else {
+        setError(err.message);
+      }
       setResponseData(null);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -34,6 +42,7 @@ const InputForm = () => {
 
   const filteredData = () => {
     if (!responseData) return null;
+    if (selectedOptions.length === 0) return responseData; // Show all data if no options are selected
 
     const result = {};
     if (selectedOptions.some(option => option.value === 'alphabets')) {
@@ -60,6 +69,9 @@ const InputForm = () => {
         />
         <button type="submit" className="submit-button">Submit</button>
       </form>
+
+      {loading && <p className="loading-message">Loading...</p>}
+
       {error && <p className="error-message">{error}</p>}
 
       {responseData && (
